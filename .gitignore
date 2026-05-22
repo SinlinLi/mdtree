@@ -1,0 +1,26 @@
+# Compiled binary
+/bin/
+/mdtree
+
+# Runtime logs
+/logs/
+*.log
+
+# Local configuration (use config.example.yaml as a template)
+/config.yaml
+/config.yml
+
+# Built frontend assets — only the .gitkeep placeholder is tracked, so that
+# `go:embed` always has a directory to embed even before a frontend build.
+/web/dist/*
+!/web/dist/.gitkeep
+
+# Test & coverage artifacts
+*.out
+coverage.html
+
+# OS / editor noise
+.DS_Store
+*.swp
+*~
+.gstack/

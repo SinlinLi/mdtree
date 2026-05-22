@@ -1,0 +1,54 @@
+# mdtree configuration. Copy this file to config.yaml and edit it.
+#
+#   cp config.example.yaml config.yaml
+#
+# Every value below can also be overridden by an environment variable
+# (MDTREE_HOST, MDTREE_PORT, MDTREE_ROOT, MDTREE_PASSWORD_HASH, ...) or by a
+# command-line flag (--host, --port, --root, --log-level).
+# Precedence, lowest to highest: defaults < config.yaml < env vars < flags.
+
+server:
+  # Address to bind. Defaults to 127.0.0.1 (local only). Only expose this
+  # publicly behind an HTTPS reverse proxy — see docs/security.md.
+  host: "127.0.0.1"
+  port: 8080
+
+# The directory mdtree may browse and edit. "/" exposes the whole filesystem
+# (the intended use case for quick server-side editing); narrow it to a
+# specific tree if you do not need that reach. mdtree runs with the
+# permissions of its own process — see docs/security.md.
+root: "/"
+
+auth:
+  # bcrypt password hash. Generate one with:  ./mdtree hash
+  # When BOTH password_hash and password are empty, mdtree generates a random
+  # password at startup and prints it once to the console.
+  password_hash: ""
+  # Optional plaintext password, hashed at startup. Convenient for containers,
+  # but password_hash is preferred so the secret is never stored in clear text.
+  password: ""
+  # How long a login session stays valid.
+  session_ttl: "24h"
+  # Mark the session cookie Secure (HTTPS-only). Enable when serving over
+  # HTTPS, including behind a TLS-terminating reverse proxy.
+  cookie_secure: false
+
+log:
+  level: "info" # debug | info | warn | error
+  dir: "./logs" # rotating log files are written here
+  console: true # also print human-readable logs to stderr
+  max_backups: 5 # number of rotated log files to keep
+  max_size_mb: 10 # rotate the active log file once it exceeds this size
+
+search:
+  # Directory names skipped while building the filename index.
+  ignore:
+    - ".git"
+    - "node_modules"
+    - ".cache"
+    - "vendor"
+    - ".Trash"
+  # Follow symlinked directories when indexing and resolving paths.
+  follow_symlinks: false
+  # Safety cap on the number of indexed files.
+  max_files: 200000
