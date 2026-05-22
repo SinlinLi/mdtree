@@ -67,11 +67,11 @@ func (r *Resolver) Resolve(p string) (string, error) {
 		return "", ErrOutsideRoot
 	}
 	if !r.followSymlinks {
-		real, err := r.evalSymlinks(abs)
+		resolved, err := r.evalSymlinks(abs)
 		if err != nil {
 			return "", err
 		}
-		if !r.within(real) {
+		if !r.within(resolved) {
 			return "", ErrOutsideRoot
 		}
 	}

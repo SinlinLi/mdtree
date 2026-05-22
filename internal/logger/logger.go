@@ -96,7 +96,7 @@ func (l *Logger) SetLevel(level string) { l.level.Set(parseLevel(level)) }
 // Module returns a child logger tagged with the given module name, enabling
 // per-module filtering and grouping.
 func (l *Logger) Module(name string) *slog.Logger {
-	return l.Logger.With(slog.String("module", name))
+	return l.With(slog.String("module", name))
 }
 
 // Close flushes and releases the underlying log file.

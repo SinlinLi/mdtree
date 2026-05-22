@@ -226,7 +226,7 @@ func writeFileAtomic(path, content string) error {
 		return err
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // no-op once the rename succeeds
+	defer func() { _ = os.Remove(tmpName) }() // no-op once the rename succeeds
 
 	if _, err := tmp.WriteString(content); err != nil {
 		_ = tmp.Close()

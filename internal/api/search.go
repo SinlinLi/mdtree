@@ -30,7 +30,7 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 // Reindex rebuilds the search index from disk.
 //
 //	POST /api/search/reindex
-func (h *Handler) Reindex(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Reindex(w http.ResponseWriter, _ *http.Request) {
 	count, elapsed, err := h.Index.Build()
 	if err != nil {
 		h.Log.Error("reindex failed", slog.Any("error", err))
@@ -48,7 +48,7 @@ func (h *Handler) Reindex(w http.ResponseWriter, r *http.Request) {
 // Stats returns runtime metrics and search index statistics.
 //
 //	GET /api/stats
-func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Stats(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"metrics":  h.Metrics.Snapshot(),
 		"index":    h.Index.Stats(),

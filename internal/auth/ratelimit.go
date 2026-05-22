@@ -9,7 +9,7 @@ import (
 // using a fixed-window counter. It slows down password brute-force attempts.
 type RateLimiter struct {
 	mu      sync.Mutex
-	max     int
+	limit   int
 	window  time.Duration
 	entries map[string]*rlEntry
 }
@@ -19,16 +19,16 @@ type rlEntry struct {
 	windowStart time.Time
 }
 
-// NewRateLimiter allows at most max failures per key within window.
-func NewRateLimiter(max int, window time.Duration) *RateLimiter {
-	return &RateLimiter{max: max, window: window, entries: make(map[string]*rlEntry)}
+// NewRateLimiter allows at most limit failures per key within window.
+func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
+	return &RateLimiter{limit: limit, window: window, entries: make(map[string]*rlEntry)}
 }
 
 // Allowed reports whether key may make another attempt.
 func (r *RateLimiter) Allowed(key string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.current(key).count < r.max
+	return r.current(key).count < r.limit
 }
 
 // Fail records a failed attempt for key.
