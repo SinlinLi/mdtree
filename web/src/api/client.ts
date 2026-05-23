@@ -76,6 +76,10 @@ export const api = {
   renameFile: (from: string, to: string) =>
     request<FileInfo>('POST', '/api/file/rename', { from, to }),
   mkdir: (path: string) => request<{ path: string }>('POST', '/api/dir', { path }),
+  deleteDir: (path: string) =>
+    request<{ ok: boolean }>('DELETE', '/api/dir' + query({ path })),
+  renameDir: (from: string, to: string) =>
+    request<{ path: string }>('POST', '/api/dir/rename', { from, to }),
 
   search: (q: string, limit = 50) =>
     request<SearchResponse>('GET', '/api/search' + query({ q, limit: String(limit) })),

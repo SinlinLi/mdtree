@@ -52,7 +52,8 @@ func writeFileError(w http.ResponseWriter, err error) {
 	case errors.Is(err, files.ErrInvalidPath),
 		errors.Is(err, files.ErrNotMarkdown),
 		errors.Is(err, files.ErrNotDir),
-		errors.Is(err, files.ErrIsDir):
+		errors.Is(err, files.ErrIsDir),
+		errors.Is(err, files.ErrNotEmpty):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, files.ErrOutsideRoot):
 		writeError(w, http.StatusForbidden, err.Error())

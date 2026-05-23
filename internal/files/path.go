@@ -19,6 +19,7 @@ var (
 	ErrTooLarge    = errors.New("file is too large")
 	ErrIsDir       = errors.New("path is a directory")
 	ErrNotDir      = errors.New("path is not a directory")
+	ErrNotEmpty    = errors.New("directory is not empty")
 )
 
 // markdownExts is the set of recognized markdown file extensions.

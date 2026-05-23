@@ -63,6 +63,8 @@ func New(cfg Config) *Server {
 			r.Delete("/file", cfg.API.DeleteFile)
 			r.Post("/file/rename", cfg.API.RenameFile)
 			r.Post("/dir", cfg.API.Mkdir)
+			r.Delete("/dir", cfg.API.DeleteDir)
+			r.Post("/dir/rename", cfg.API.RenameDir)
 			r.Get("/search", cfg.API.Search)
 			r.Post("/search/reindex", cfg.API.Reindex)
 			r.Get("/stats", cfg.API.Stats)

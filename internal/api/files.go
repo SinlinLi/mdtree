@@ -141,3 +141,37 @@ func (h *Handler) Mkdir(w http.ResponseWriter, r *http.Request) {
 	h.Log.Info("directory created", slog.String("path", abs))
 	writeJSON(w, http.StatusCreated, map[string]any{"path": abs})
 }
+
+// DeleteDir removes an empty directory.
+//
+//	DELETE /api/dir?path=/abs/dir
+func (h *Handler) DeleteDir(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	if err := h.Files.DeleteDir(path); err != nil {
+		writeFileError(w, err)
+		return
+	}
+	abs, _ := h.Files.ResolvePath(path)
+	h.Log.Info("directory deleted", slog.String("path", abs))
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// RenameDir moves a directory to a new path.
+//
+//	POST /api/dir/rename  {"from": "...", "to": "..."}
+func (h *Handler) RenameDir(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		From string `json:"from"`
+		To   string `json:"to"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if err := h.Files.RenameDir(req.From, req.To); err != nil {
+		writeFileError(w, err)
+		return
+	}
+	absTo, _ := h.Files.ResolvePath(req.To)
+	h.Log.Info("directory renamed", slog.String("from", req.From), slog.String("to", absTo))
+	writeJSON(w, http.StatusOK, map[string]any{"path": absTo})
+}

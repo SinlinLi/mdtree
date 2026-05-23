@@ -1,17 +1,60 @@
-import { useEffect, useState } from 'react'
-import { ChevronRight, FileText, Folder, FolderOpen, Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { ChevronRight, FileText, Folder, FolderOpen, Loader2, FilePlus, FolderPlus, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../api/client'
 import type { TreeEntry } from '../types'
 
-interface FileTreeProps {
-  activePath: string | null
-  /** Bumped by the parent to force a reload after structural changes. */
-  refreshNonce: number
-  onOpenFile: (path: string) => void
+interface ContextMenuTarget {
+  type: 'dir' | 'file'
+  path: string
+  name: string
+  x: number
+  y: number
 }
 
-/** A lazily-loaded, markdown-only file tree rooted at the server's root. */
-export function FileTree({ activePath, refreshNonce, onOpenFile }: FileTreeProps) {
+interface FileTreeProps {
+  activePath: string | null
+  refreshNonce: number
+  onOpenFile: (path: string) => void
+  onNewFile: (dirPath: string) => void
+  onNewDir: (dirPath: string) => void
+  onRenameFile: (path: string) => void
+  onRenameDir: (path: string) => void
+  onDeleteFile: (path: string) => void
+  onDeleteDir: (path: string) => void
+}
+
+export function FileTree({
+  activePath,
+  refreshNonce,
+  onOpenFile,
+  onNewFile,
+  onNewDir,
+  onRenameFile,
+  onRenameDir,
+  onDeleteFile,
+  onDeleteDir,
+}: FileTreeProps) {
+  const [menu, setMenu] = useState<ContextMenuTarget | null>(null)
+
+  const closeMenu = useCallback(() => setMenu(null), [])
+
+  useEffect(() => {
+    if (!menu) return
+    const handler = () => setMenu(null)
+    window.addEventListener('click', handler)
+    window.addEventListener('contextmenu', handler)
+    return () => {
+      window.removeEventListener('click', handler)
+      window.removeEventListener('contextmenu', handler)
+    }
+  }, [menu])
+
+  const onContextMenu = useCallback((e: React.MouseEvent, entry: ContextMenuTarget) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setMenu(entry)
+  }, [])
+
   return (
     <div className="file-tree" role="tree">
       <DirNode
@@ -22,13 +65,35 @@ export function FileTree({ activePath, refreshNonce, onOpenFile }: FileTreeProps
         activePath={activePath}
         refreshNonce={refreshNonce}
         onOpenFile={onOpenFile}
+        onContextMenu={onContextMenu}
       />
+      {menu && (
+        <ContextMenu
+          target={menu}
+          onClose={closeMenu}
+          onNewFile={() => { closeMenu(); onNewFile(menu.type === 'dir' ? menu.path : dirOf(menu.path)) }}
+          onNewDir={() => { closeMenu(); onNewDir(menu.type === 'dir' ? menu.path : dirOf(menu.path)) }}
+          onRename={() => {
+            closeMenu()
+            if (menu.type === 'file') onRenameFile(menu.path)
+            else onRenameDir(menu.path)
+          }}
+          onDelete={() => {
+            closeMenu()
+            if (menu.type === 'file') onDeleteFile(menu.path)
+            else onDeleteDir(menu.path)
+          }}
+        />
+      )}
     </div>
   )
 }
 
+function dirOf(path: string): string {
+  return path.slice(0, path.lastIndexOf('/') + 1)
+}
+
 interface DirNodeProps {
-  /** Absolute directory path, or null for the configured root. */
   path: string | null
   name: string
   depth: number
@@ -36,6 +101,7 @@ interface DirNodeProps {
   activePath: string | null
   refreshNonce: number
   onOpenFile: (path: string) => void
+  onContextMenu: (e: React.MouseEvent, target: ContextMenuTarget) => void
 }
 
 function DirNode({
@@ -46,6 +112,7 @@ function DirNode({
   activePath,
   refreshNonce,
   onOpenFile,
+  onContextMenu,
 }: DirNodeProps) {
   const [expanded, setExpanded] = useState(Boolean(defaultExpanded))
   const [entries, setEntries] = useState<TreeEntry[] | null>(null)
@@ -77,6 +144,7 @@ function DirNode({
   }, [expanded, path, refreshNonce])
 
   const indent = { paddingLeft: `${depth * 14 + 8}px` }
+  const resolvedPath = path ?? label
 
   return (
     <div className="tree-node">
@@ -85,6 +153,11 @@ function DirNode({
         className="tree-row tree-dir"
         style={indent}
         onClick={() => setExpanded((v) => !v)}
+        onContextMenu={(e) => {
+          if (path !== null) {
+            onContextMenu(e, { type: 'dir', path: resolvedPath, name: label, x: e.clientX, y: e.clientY })
+          }
+        }}
         aria-expanded={expanded}
       >
         <ChevronRight
@@ -118,6 +191,7 @@ function DirNode({
                 activePath={activePath}
                 refreshNonce={refreshNonce}
                 onOpenFile={onOpenFile}
+                onContextMenu={onContextMenu}
               />
             ) : (
               <button
@@ -126,6 +200,9 @@ function DirNode({
                 className={`tree-row tree-file${entry.path === activePath ? ' active' : ''}`}
                 style={{ paddingLeft: `${(depth + 1) * 14 + 8}px` }}
                 onClick={() => onOpenFile(entry.path)}
+                onContextMenu={(e) =>
+                  onContextMenu(e, { type: 'file', path: entry.path, name: entry.name, x: e.clientX, y: e.clientY })
+                }
                 title={entry.path}
               >
                 <FileText size={15} className="tree-file-icon" />
@@ -135,6 +212,58 @@ function DirNode({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+interface ContextMenuProps {
+  target: ContextMenuTarget
+  onClose: () => void
+  onNewFile: () => void
+  onNewDir: () => void
+  onRename: () => void
+  onDelete: () => void
+}
+
+function ContextMenu({ target, onNewFile, onNewDir, onRename, onDelete }: ContextMenuProps) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    if (rect.right > vw) el.style.left = `${target.x - rect.width}px`
+    if (rect.bottom > vh) el.style.top = `${target.y - rect.height}px`
+  }, [target.x, target.y])
+
+  return (
+    <div
+      ref={ref}
+      className="ctx-menu"
+      style={{ left: target.x, top: target.y }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation() }}
+    >
+      <button type="button" className="ctx-item" onClick={onNewFile}>
+        <FilePlus size={14} />
+        <span>New File</span>
+      </button>
+      <button type="button" className="ctx-item" onClick={onNewDir}>
+        <FolderPlus size={14} />
+        <span>New Folder</span>
+      </button>
+      <div className="ctx-sep" />
+      <button type="button" className="ctx-item" onClick={onRename}>
+        <Pencil size={14} />
+        <span>Rename</span>
+      </button>
+      <button type="button" className="ctx-item ctx-danger" onClick={onDelete}>
+        <Trash2 size={14} />
+        <span>Delete</span>
+      </button>
     </div>
   )
 }

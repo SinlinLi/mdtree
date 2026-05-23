@@ -209,6 +209,69 @@ func (m *Manager) Mkdir(path string) error {
 	return os.MkdirAll(abs, 0o750)
 }
 
+// DeleteDir removes an empty directory. It refuses to delete the root.
+func (m *Manager) DeleteDir(path string) error {
+	abs, err := m.resolver.Resolve(path)
+	if err != nil {
+		return err
+	}
+	if abs == m.resolver.Root() {
+		return ErrInvalidPath
+	}
+	fi, err := os.Stat(abs)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if !fi.IsDir() {
+		return ErrNotDir
+	}
+	entries, err := os.ReadDir(abs)
+	if err != nil {
+		return err
+	}
+	if len(entries) > 0 {
+		return ErrNotEmpty
+	}
+	return os.Remove(abs)
+}
+
+// RenameDir moves a directory to a new path. The destination must not exist.
+func (m *Manager) RenameDir(from, to string) error {
+	absFrom, err := m.resolver.Resolve(from)
+	if err != nil {
+		return err
+	}
+	absTo, err := m.resolver.Resolve(to)
+	if err != nil {
+		return err
+	}
+	if absFrom == m.resolver.Root() {
+		return ErrInvalidPath
+	}
+	fi, err := os.Stat(absFrom)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ErrNotFound
+		}
+		return err
+	}
+	if !fi.IsDir() {
+		return ErrNotDir
+	}
+	if _, err := os.Stat(absTo); err == nil {
+		return ErrExists
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(absTo), 0o750); err != nil {
+		return err
+	}
+	return os.Rename(absFrom, absTo)
+}
+
 func (m *Manager) infoOf(abs string) (FileInfo, error) {
 	fi, err := os.Stat(abs)
 	if err != nil {

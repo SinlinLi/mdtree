@@ -249,6 +249,121 @@ export function App() {
     }
   }
 
+  function promptNewFileIn(dir: string) {
+    const prefix = dir.replace(/\/*$/, '/')
+    setPrompt({
+      title: 'New markdown file',
+      label: 'Full path (must end in .md)',
+      initial: `${prefix}untitled.md`,
+      confirmText: 'Create',
+      onConfirm: (path) => {
+        setPrompt(null)
+        void (async () => {
+          try {
+            const info = await api.createFile(path, `# ${baseName(path).replace(/\.[^.]+$/, '')}\n\n`)
+            setTreeNonce((n) => n + 1)
+            await openFile(info.path)
+            setIndexedFiles((n) => (n === null ? n : n + 1))
+            notify('File created')
+          } catch (err) {
+            notify(errorMessage(err), 'error')
+          }
+        })()
+      },
+    })
+  }
+
+  function promptNewDir(parentDir: string) {
+    const prefix = parentDir.replace(/\/*$/, '/')
+    setPrompt({
+      title: 'New folder',
+      label: 'Full path',
+      initial: `${prefix}new-folder`,
+      confirmText: 'Create',
+      onConfirm: (path) => {
+        setPrompt(null)
+        void (async () => {
+          try {
+            await api.mkdir(path)
+            setTreeNonce((n) => n + 1)
+            notify('Folder created')
+          } catch (err) {
+            notify(errorMessage(err), 'error')
+          }
+        })()
+      },
+    })
+  }
+
+  function promptRenameFile(path: string) {
+    setPrompt({
+      title: 'Rename file',
+      label: 'New full path',
+      initial: path,
+      confirmText: 'Rename',
+      onConfirm: (to) => {
+        setPrompt(null)
+        void (async () => {
+          try {
+            const info = await api.renameFile(path, to)
+            setTreeNonce((n) => n + 1)
+            setFile((f) => (f && f.path === path ? { ...f, path: info.path, name: info.name } : f))
+            notify('File renamed')
+          } catch (err) {
+            notify(errorMessage(err), 'error')
+          }
+        })()
+      },
+    })
+  }
+
+  function promptRenameDirAt(path: string) {
+    setPrompt({
+      title: 'Rename folder',
+      label: 'New full path',
+      initial: path,
+      confirmText: 'Rename',
+      onConfirm: (to) => {
+        setPrompt(null)
+        void (async () => {
+          try {
+            await api.renameDir(path, to)
+            setTreeNonce((n) => n + 1)
+            notify('Folder renamed')
+          } catch (err) {
+            notify(errorMessage(err), 'error')
+          }
+        })()
+      },
+    })
+  }
+
+  async function deleteFileAt(path: string) {
+    const name = baseName(path)
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return
+    try {
+      await api.deleteFile(path)
+      setTreeNonce((n) => n + 1)
+      if (file?.path === path) setFile(null)
+      setIndexedFiles((n) => (n === null ? n : Math.max(0, n - 1)))
+      notify('File deleted')
+    } catch (err) {
+      notify(errorMessage(err), 'error')
+    }
+  }
+
+  async function deleteDirAt(path: string) {
+    const name = baseName(path)
+    if (!window.confirm(`Delete folder "${name}"? It must be empty.`)) return
+    try {
+      await api.deleteDir(path)
+      setTreeNonce((n) => n + 1)
+      notify('Folder deleted')
+    } catch (err) {
+      notify(errorMessage(err), 'error')
+    }
+  }
+
   if (auth.state === 'loading') {
     return <div className="boot">Loading mdtree…</div>
   }
@@ -279,6 +394,12 @@ export function App() {
           activePath={file?.path ?? null}
           refreshNonce={treeNonce}
           onOpenFile={(path) => void openFile(path)}
+          onNewFile={(dir) => promptNewFileIn(dir)}
+          onNewDir={(dir) => promptNewDir(dir)}
+          onRenameFile={(path) => promptRenameFile(path)}
+          onRenameDir={(path) => promptRenameDirAt(path)}
+          onDeleteFile={(path) => void deleteFileAt(path)}
+          onDeleteDir={(path) => void deleteDirAt(path)}
         />
 
         <div className="sidebar-foot">

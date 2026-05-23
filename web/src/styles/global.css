@@ -877,6 +877,52 @@ kbd {
   background: var(--accent-hover);
 }
 
+/* ---------- context menu ---------- */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 150;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  animation: ctx-in 0.1s ease-out;
+}
+
+@keyframes ctx-in {
+  from { opacity: 0; transform: scale(0.95); }
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 5px;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+}
+
+.ctx-item:hover {
+  background: var(--hover);
+  color: var(--text-bright);
+}
+
+.ctx-item.ctx-danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border);
+}
+
 /* ---------- toast ---------- */
 
 .toast {
