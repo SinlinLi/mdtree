@@ -7,6 +7,7 @@ interface ContextMenuTarget {
   type: 'dir' | 'file'
   path: string
   name: string
+  isRoot?: boolean
   x: number
   y: number
 }
@@ -154,9 +155,7 @@ function DirNode({
         style={indent}
         onClick={() => setExpanded((v) => !v)}
         onContextMenu={(e) => {
-          if (path !== null) {
-            onContextMenu(e, { type: 'dir', path: resolvedPath, name: label, x: e.clientX, y: e.clientY })
-          }
+          onContextMenu(e, { type: 'dir', path: resolvedPath, name: label, isRoot: path === null, x: e.clientX, y: e.clientY })
         }}
         aria-expanded={expanded}
       >
@@ -255,15 +254,19 @@ function ContextMenu({ target, onNewFile, onNewDir, onRename, onDelete }: Contex
         <FolderPlus size={14} />
         <span>New Folder</span>
       </button>
-      <div className="ctx-sep" />
-      <button type="button" className="ctx-item" onClick={onRename}>
-        <Pencil size={14} />
-        <span>Rename</span>
-      </button>
-      <button type="button" className="ctx-item ctx-danger" onClick={onDelete}>
-        <Trash2 size={14} />
-        <span>Delete</span>
-      </button>
+      {!target.isRoot && (
+        <>
+          <div className="ctx-sep" />
+          <button type="button" className="ctx-item" onClick={onRename}>
+            <Pencil size={14} />
+            <span>Rename</span>
+          </button>
+          <button type="button" className="ctx-item ctx-danger" onClick={onDelete}>
+            <Trash2 size={14} />
+            <span>Delete</span>
+          </button>
+        </>
+      )}
     </div>
   )
 }
